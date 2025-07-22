@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/box_inset_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_gravity="center">
+
+        <!-- Botón circular con ícono -->
+        <ImageButton
+            android:id="@+id/btnIrAlLogin"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:background="@drawable/circular_background"
+            android:contentDescription="login"
+            android:src="@drawable/ic_account"
+            android:scaleType="centerInside"
+            android:padding="10dp"/>
+
+        <TextView
+            android:id="@+id/nombreAdultoText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:layout_marginBottom="10dp"
+            android:gravity="center"
+            android:visibility="gone"/>
+
+
+        <TextView
+            android:id="@+id/heartRateText"
+            android:text="Ritmo cardíaco: -- bpm"
+            android:textSize="16sp"
+            android:layout_marginBottom="10dp"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"/>
+
+        <TextView
+            android:id="@+id/estimatedTempText"
+            android:text="Temperatura estimada: -- °C"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:textColor="#CCCCCC"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"/>
+
+    </LinearLayout>
+
+</androidx.wear.widget.BoxInsetLayout>
