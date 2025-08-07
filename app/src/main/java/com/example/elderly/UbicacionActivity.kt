@@ -78,17 +78,17 @@ class UbicacionActivity : BaseActivity() {
         for (i in 0 until jsonArray.length()) {
             try {
                 val location = jsonArray.getJSONObject(i)
-                val adultoId = location.getString("adultoId")
+                val nombre = location.getString("nombre")
                 val lat = location.getDouble("lat")
                 val lon = location.getDouble("lon")
 
                 if (lat != 0.0 && lon != 0.0) {
                     val punto = GeoPoint(lat, lon)
-                    val nombre = "Adulto $adultoId"
+                    val name = "Adulto $nombre"
 
                     ubicaciones.add(punto)
-                    nombresAdultos.add(nombre)
-                    markers.add(createMarker(punto, nombre))
+                    nombresAdultos.add(name)
+                    markers.add(createMarker(punto, name))
                 }
             } catch (e: Exception) {
                 Log.e("Ubicacion", "Error procesando ubicación $i", e)

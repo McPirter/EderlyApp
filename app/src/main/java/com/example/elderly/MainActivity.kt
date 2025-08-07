@@ -59,10 +59,17 @@ class MainActivity : AppCompatActivity() {
                     override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                         if (response.isSuccessful && response.body() != null) {
                             val loginData = response.body()!!
+                            // Guardar userId en SharedPreferences
+                            val sharedPreferences = getSharedPreferences("MiAppPrefs", MODE_PRIVATE)
+                            val editor = sharedPreferences.edit()
+                            editor.putString("userId", loginData.userId)
+                            editor.apply()
+
                             val intent = Intent(this@MainActivity, DashboardActivity::class.java)
                             intent.putExtra("nombreUsuario", username)
                             intent.putExtra("userId", loginData.userId) // 👈 pasamos el userId
-                            startActivity(intent)
+                                startActivity(intent)
+                            finish()
 
 
                         } else {
@@ -94,6 +101,10 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, RegisterActivity::class.java)
             startActivity(intent)
         }
+    }
+    @Suppress("MissingSuperCall")
+    override fun onBackPressed() {
+        moveTaskToBack(true)
     }
 
 }

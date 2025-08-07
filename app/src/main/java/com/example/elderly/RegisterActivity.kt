@@ -40,6 +40,7 @@ class RegisterActivity : AppCompatActivity() {
             val tilTelefono = findViewById<TextInputLayout>(R.id.tilTelefono)
             val tilCorreo = findViewById<TextInputLayout>(R.id.tilCorreo)
             val tilContrasena = findViewById<TextInputLayout>(R.id.tilContrasena)
+            
             val tilNombreAdulto = findViewById<TextInputLayout>(R.id.tilNombreAdulto)
             val tilDia = findViewById<TextInputLayout>(R.id.tilDia)
             val tilMes = findViewById<TextInputLayout>(R.id.tilMes)

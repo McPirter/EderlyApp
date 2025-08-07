@@ -35,6 +35,7 @@
         </activity>
         <activity android:name=".RegisterActivity" />
         <activity android:name=".DashboardActivity" />
+        <activity android:name=".RegistrarAdulto" />
         <activity android:name=".UbicacionActivity" />
         <activity android:name=".MapaActivity" />
         <activity android:name=".MonitoreoActivity" />
