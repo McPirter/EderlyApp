@@ -5,6 +5,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+
+
     <!-- Scrollable content -->
     <ScrollView
         android:layout_width="match_parent"
@@ -18,14 +20,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:background="@drawable/fondomenua"
+            >
 
             <TextView
                 android:id="@+id/welcomeMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Bienvenido"
-                android:textSize="18sp"
+                android:textSize="30dp"
                 android:textStyle="bold"
                 android:layout_marginBottom="16dp" />
 
