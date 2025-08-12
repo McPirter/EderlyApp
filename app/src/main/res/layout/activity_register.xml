@@ -1,218 +1,238 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="24dp"
-    android:background="#FFFFFF">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <!-- Fondo fijo -->
+    <ImageView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="match_parent"
+        android:src="@drawable/registrofondo"
+        android:scaleType="fitXY"
+        android:adjustViewBounds="true" />
 
-        <!-- Título -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Crea tu cuenta"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="#000000"
-            android:gravity="center"
-            android:layout_marginBottom="16dp" />
+    <!-- Contenido scrollable -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="24dp"
+        android:clipToPadding="false">
 
-        <!-- Nombre de usuario -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilNombreFamiliar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:errorEnabled="true">
-            <EditText
-                android:id="@+id/etNombreFamiliar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Nombre de Usuario"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Teléfono -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilTelefono"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:errorEnabled="true">
-            <EditText
-                android:id="@+id/etTelefono"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Número de teléfono"
-                android:inputType="phone"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Correo -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilCorreo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:errorEnabled="true">
-            <EditText
-                android:id="@+id/etCorreo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Correo electrónico"
-                android:inputType="textEmailAddress"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Contraseña -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilContrasena"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            app:errorEnabled="true">
-            <EditText
-                android:id="@+id/etContrasena"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Contraseña"
-                android:inputType="textPassword"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Información del Adulto Mayor -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Información del Adulto Mayor"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginBottom="12dp" />
-
-        <!-- Nombre del adulto -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilNombreAdulto"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:errorEnabled="true">
-            <EditText
-                android:id="@+id/etNombreAdulto"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Nombre completo"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Fecha de nacimiento -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="3"
-            android:layout_marginBottom="12dp">
+            android:orientation="vertical">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilDia"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:errorEnabled="true">
-                <EditText
-                    android:id="@+id/etDia"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="DD"
-                    android:inputType="number"/>
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilMes"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:errorEnabled="true">
-                <EditText
-                    android:id="@+id/etMes"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="MM"
-                    android:inputType="number"/>
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilAnio"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:errorEnabled="true">
-                <EditText
-                    android:id="@+id/etAnio"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="AAAA"
-                    android:inputType="number"/>
-            </com.google.android.material.textfield.TextInputLayout>
-        </LinearLayout>
-
-        <!-- Condiciones médicas -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilCondiciones"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:errorEnabled="true">
-            <EditText
-                android:id="@+id/etCondiciones"
+            <!-- Título -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Condiciones médicas"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:text="Crea tu cuenta"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="#000000"
+                android:gravity="center"
+                android:layout_marginBottom="13dp" />
 
-        <!-- Peso y altura -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="12dp"
-            android:weightSum="2">
-
+            <!-- Nombre de usuario -->
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilPeso"
-                android:layout_width="0dp"
+                android:id="@+id/tilNombreFamiliar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:errorEnabled="true">
+                android:layout_marginBottom="12dp"
+                app:errorEnabled="true"
+                app:startIconDrawable="@drawable/baseline_person_24">
+
                 <EditText
-                    android:id="@+id/etPeso"
+                    android:id="@+id/etNombreFamiliar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Peso (kg)"
-                    android:inputType="numberDecimal"/>
+                    android:hint="Nombre de Usuario" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Teléfono -->
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilAltura"
-                android:layout_width="0dp"
+                android:id="@+id/tilTelefono"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:errorEnabled="true">
+                android:layout_marginBottom="12dp"
+                app:errorEnabled="true"
+                app:startIconDrawable="@drawable/outline_add_call_24">
                 <EditText
-                    android:id="@+id/etAltura"
+                    android:id="@+id/etTelefono"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Altura (m)"
-                    android:inputType="numberDecimal"/>
+                    android:hint="Número de teléfono"
+                    android:inputType="phone"/>
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Correo -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilCorreo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:errorEnabled="true"
+                app:startIconDrawable="@drawable/outline_alternate_email_24">
+                <EditText
+                    android:id="@+id/etCorreo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Correo electrónico"
+                    android:inputType="textEmailAddress"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Contraseña -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilContrasena"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:errorEnabled="true"
+                app:startIconDrawable="@drawable/outline_admin_panel_settings_24">
+                <EditText
+                    android:id="@+id/etContrasena"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Contraseña"
+                    android:inputType="textPassword"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Información del Adulto Mayor -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Información del Adulto Mayor"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Nombre del adulto -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilNombreAdulto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:errorEnabled="true">
+                <EditText
+                    android:id="@+id/etNombreAdulto"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Nombre completo"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Fecha de nacimiento -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="3"
+                android:layout_marginBottom="12dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilDia"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:errorEnabled="true">
+                    <EditText
+                        android:id="@+id/etDia"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="DD"
+                        android:inputType="number"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilMes"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:errorEnabled="true">
+                    <EditText
+                        android:id="@+id/etMes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="MM"
+                        android:inputType="number"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilAnio"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:errorEnabled="true">
+                    <EditText
+                        android:id="@+id/etAnio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="AAAA"
+                        android:inputType="number"/>
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <!-- Condiciones médicas -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilCondiciones"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:errorEnabled="true"
+                app:startIconDrawable="@drawable/outline_assignment_24">
+                <EditText
+                    android:id="@+id/etCondiciones"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Condiciones médicas"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Peso y altura -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp"
+                android:weightSum="2">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilPeso"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:errorEnabled="true">
+                    <EditText
+                        android:id="@+id/etPeso"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Peso (kg)"
+                        android:inputType="numberDecimal"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilAltura"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:errorEnabled="true">
+                    <EditText
+                        android:id="@+id/etAltura"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Altura (m)"
+                        android:inputType="numberDecimal"/>
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <!-- Botón Siguiente -->
+            <Button
+                android:id="@+id/btnSiguiente"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Siguiente"
+                android:backgroundTint="#007AFF"
+                android:textColor="#FFFFFF" />
         </LinearLayout>
-
-        <!-- Botón Siguiente -->
-        <Button
-            android:id="@+id/btnSiguiente"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Siguiente"
-            android:backgroundTint="#007AFF"
-            android:textColor="#FFFFFF" />
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</FrameLayout>
