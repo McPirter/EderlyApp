@@ -43,6 +43,7 @@ class MonitoreoActivity : AppCompatActivity() {
     private val heartRates = mutableListOf<Float>()
     private val temperatures = mutableListOf<Float>()
     private lateinit var adultoId: String
+    private lateinit var nombre: String
     private lateinit var recordatorioAdapter: RecordatorioAdapter
     private lateinit var lineChart: LineChartView
     private lateinit var barChart: BarChartView
@@ -117,13 +118,14 @@ class MonitoreoActivity : AppCompatActivity() {
     private fun processWearableData(message: String) {
         try {
             val partes = message.split("|")
-            if (partes.size >= 7 && partes[0] == "datos") {
+            if (partes.size >= 8 && partes[0] == "datos") {
                 val id = partes[1]
                 val temperatura = partes[2].toFloatOrNull()
                 val frecuencia = partes[3].toFloatOrNull()
                 val latitud = partes[4]
                 val longitud = partes[5]
                 val timestamp = partes[6]
+                val nombre = partes[7]
 
                 if (id == adultoId && temperatura != null && frecuencia != null) {
                     if (heartRates.size >= MAX_DATA_POINTS) heartRates.removeAt(0)
@@ -157,6 +159,7 @@ class MonitoreoActivity : AppCompatActivity() {
             put("heartRate", heartRate)
             put("temperatura", temperature)
             put("timestamp", System.currentTimeMillis())
+            put("nombre", nombre)
         }.let { jsonArray.put(it) }
         sharedPrefs.edit().putString("datos", jsonArray.toString()).apply()
     }

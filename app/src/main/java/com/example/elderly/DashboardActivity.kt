@@ -115,12 +115,13 @@ class DashboardActivity : BaseActivity() {
             }
 
             val partes = rawData.split("|")
-            if (partes.size >= 7) {
+            if (partes.size >= 8) {
                 val adultoId = partes[1]
                 val heartRate = partes[2]
                 val temperatura = partes[3]
                 val lat = partes[4].toDoubleOrNull() ?: 0.0
                 val lon = partes[5].toDoubleOrNull() ?: 0.0
+                val nombre = partes[6]
 
                 Log.d(TAG, """
                     ✅ Datos procesados:
@@ -129,6 +130,7 @@ class DashboardActivity : BaseActivity() {
                     - Temp: $temperatura
                     - Lat: $lat
                     - Lon: $lon
+                    - Nombre: $nombre
                 """.trimIndent())
 
                 runOnUiThread {

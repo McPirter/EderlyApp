@@ -1,5 +1,6 @@
 package com.example.elderly.presentation
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -11,6 +12,7 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +41,8 @@ class MainActivity : Activity(), SensorEventListener {
     private lateinit var estimatedTempText: TextView
     private lateinit var gpsService: GPSService
 
+    private val REQUEST_PERMISSIONS_CODE = 100
+
     // Datos simulados
     private val edad = 70
     private val presionSistolica = 135
@@ -47,15 +51,12 @@ class MainActivity : Activity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Inicializa sensorManager antes de cualquier return
+        setContentView(R.layout.activity_main)
+
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
         val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
-// Solo obtener los datos, pero no redirigir
         val adultoIdGuardado = sharedPref.getString("adultoId", null)
-
-
-        setContentView(R.layout.activity_main)
 
         val btnLogin = findViewById<ImageButton>(R.id.btnIrAlLogin)
         btnLogin.setOnClickListener {
@@ -64,10 +65,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
 
         val nombreTextView = findViewById<TextView>(R.id.nombreAdultoText)
-
-        val nombreAdulto = intent.getStringExtra("adultoNombre")
-            ?: sharedPref.getString("adultoNombre", null)
-
+        val nombreAdulto = intent.getStringExtra("adultoNombre") ?: sharedPref.getString("adultoNombre", null)
         if (!nombreAdulto.isNullOrEmpty()) {
             nombreTextView.text = nombreAdulto
             nombreTextView.visibility = TextView.VISIBLE
@@ -75,34 +73,54 @@ class MainActivity : Activity(), SensorEventListener {
             nombreTextView.visibility = TextView.GONE
         }
 
-
         heartRateText = findViewById(R.id.heartRateText)
         estimatedTempText = findViewById(R.id.estimatedTempText)
 
         heartRateSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
         gpsService = GPSService(this)
 
-        if (
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.BODY_SENSORS) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    android.Manifest.permission.BODY_SENSORS,
-                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                100
-            )
-        } else {
-            iniciarSensor()
-            gpsService.startLocationUpdates()
-        }
+        checkAndRequestPermissions()
 
         val temperatura = estimarTemperatura(edad, presionSistolica, presionDiastolica)
         estimatedTempText.text = "Temperatura estimada: %.2f°C".format(temperatura)
+    }
+
+    private fun checkAndRequestPermissions() {
+        val permissionsNeeded = mutableListOf<String>()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BODY_SENSORS) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.BODY_SENSORS)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACTIVITY_RECOGNITION)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.HIGH_SAMPLING_RATE_SENSORS) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.HIGH_SAMPLING_RATE_SENSORS)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.FOREGROUND_SERVICE_LOCATION)
+        }
+
+
+        if (permissionsNeeded.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), REQUEST_PERMISSIONS_CODE)
+        } else {
+            // Si ya tiene permisos, iniciar todo normalmente
+            iniciarSensor()
+            gpsService.startLocationUpdates()
+            iniciarForegroundService()
+        }
+    }
+
+    private fun iniciarForegroundService() {
+        val intent = Intent(this, ForegroundService::class.java)
+        ContextCompat.startForegroundService(this, intent)
     }
 
     private fun iniciarSensor() {
@@ -135,9 +153,9 @@ class MainActivity : Activity(), SensorEventListener {
                 val temperatura = estimarTemperaturaDinamica(heartRate, edad, presionSistolica, presionDiastolica)
                 estimatedTempText.text = "Temperatura estimada: %.2f°C".format(temperatura)
 
-                // Obtiene ID y coordenadas
                 val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
                 val adultoId = sharedPref.getString("adultoId", null) ?: return
+                val nombre = sharedPref.getString("adultoNombre", null) ?: return
                 val location = gpsService.getLastKnownLocation() ?: return
 
                 val syncService = SyncService(this)
@@ -146,12 +164,13 @@ class MainActivity : Activity(), SensorEventListener {
                     heartRate,
                     temperatura,
                     location.latitude,
-                    location.longitude
+                    location.longitude,
+                    nombre
+
                 )
             }
         }
     }
-
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // No necesario para esta app
@@ -163,15 +182,15 @@ class MainActivity : Activity(), SensorEventListener {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 100) {
-            val bodySensorGranted = grantResults.getOrNull(0) == PackageManager.PERMISSION_GRANTED
-            val locationGranted = grantResults.getOrNull(1) == PackageManager.PERMISSION_GRANTED
-
-            if (bodySensorGranted) iniciarSensor()
-            if (locationGranted) gpsService.startLocationUpdates()
-
-            if (!bodySensorGranted) {
-                heartRateText.text = "Permiso denegado para sensor"
+        if (requestCode == REQUEST_PERMISSIONS_CODE) {
+            val denied = grantResults.any { it != PackageManager.PERMISSION_GRANTED }
+            if (denied) {
+                Toast.makeText(this, "Permisos necesarios para la app", Toast.LENGTH_LONG).show()
+                heartRateText.text = "Permisos denegados"
+            } else {
+                iniciarSensor()
+                gpsService.startLocationUpdates()
+                iniciarForegroundService()
             }
         }
     }

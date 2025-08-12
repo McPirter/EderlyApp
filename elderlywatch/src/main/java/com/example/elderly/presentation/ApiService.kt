@@ -23,10 +23,18 @@ data class Adulto(
     val edad: Int
 )
 
+
+
 interface ApiService {
 
     @POST("login")
     fun login(@Body loginRequest: LoginRequest): Call<LoginResponse>
+
+    @POST("guardar-datos/{adultoId}")
+    fun guardarDatos(
+        @Path("adultoId") adultoId: String,
+        @Body datos: Map<String, Any>,
+    ): Call<Void>
 
     @GET("por-usuario/{userId}")
     fun obtenerAdultos(@Path("userId") userId: String): Call<List<Adulto>>

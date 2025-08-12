@@ -11,9 +11,10 @@ class SyncService(private val context: Context) {
         heartRate: Float,
         temperatura: Double,
         latitud: Double,
-        longitud: Double
+        longitud: Double,
+        nombre: String
     ) {
-        val mensaje = "datos|$adultoId|$heartRate|$temperatura|$latitud|$longitud|${System.currentTimeMillis()}"
+        val mensaje = "datos|$adultoId|$heartRate|$temperatura|$latitud|$longitud|$nombre|${System.currentTimeMillis()}"
         val client = Wearable.getMessageClient(context)
 
         Wearable.getNodeClient(context).connectedNodes

@@ -58,19 +58,30 @@ class UbicacionActivity : BaseActivity() {
         try {
             val prefs = getSharedPreferences("datos_recibidos", Context.MODE_PRIVATE)
             val jsonData = prefs.getString("datos", "[]") ?: "[]"
-            Log.d("Ubicacion", "Datos cargados: $jsonData")
 
             val jsonArray = JSONArray(jsonData)
             if (jsonArray.length() > 0) {
                 processLocations(jsonArray)
             } else {
-                showDefaultLocation()
+                val gpsPrefs = getSharedPreferences("gps_prefs", Context.MODE_PRIVATE)
+                val lat = gpsPrefs.getString("latitude", null)?.toDoubleOrNull()
+                val lon = gpsPrefs.getString("longitude", null)?.toDoubleOrNull()
+
+                if (lat != null && lon != null) {
+                    processLocations(JSONArray("[{\"nombre\":\"GPS\",\"lat\":$lat,\"lon\":$lon}]"))
+                } else {
+                    showDefaultLocation()
+                }
             }
+
+            Log.d("Ubicacion", "Datos cargados: $jsonData")
+
         } catch (e: JSONException) {
             Log.e("Ubicacion", "Error parsing locations", e)
             showDefaultLocation()
         }
     }
+
 
     private fun processLocations(jsonArray: JSONArray) {
         clearData()
@@ -78,9 +89,9 @@ class UbicacionActivity : BaseActivity() {
         for (i in 0 until jsonArray.length()) {
             try {
                 val location = jsonArray.getJSONObject(i)
-                val nombre = location.getString("nombre")
-                val lat = location.getDouble("lat")
-                val lon = location.getDouble("lon")
+                val nombre = location.optString("nombre", "Desconocido")
+                val lat = location.optDouble("lat")
+                val lon = location.optDouble("lon")
 
                 if (lat != 0.0 && lon != 0.0) {
                     val punto = GeoPoint(lat, lon)
