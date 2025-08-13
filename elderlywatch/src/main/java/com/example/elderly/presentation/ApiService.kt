@@ -1,5 +1,6 @@
 package com.example.elderly.presentation.network
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -23,6 +24,28 @@ data class Adulto(
     val edad: Int
 )
 
+data class MedicamentoResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val data: Medicamento?
+)
+
+data class Medicamento(
+    @SerializedName("_id") val id: String,
+    @SerializedName("adulto") val adulto: AdultoMini,
+    @SerializedName("medicina") val medicina: String,
+    @SerializedName("descripcion") val descripcion: String?,
+    @SerializedName("tiempo") val tiempo: Int,
+    @SerializedName("fecha") val fecha: String
+)
+
+data class AdultoMini(
+    @SerializedName("_id") val id: String,
+    @SerializedName("nombre") val nombre: String
+)
+
+
+
 
 
 interface ApiService {
@@ -30,12 +53,10 @@ interface ApiService {
     @POST("login")
     fun login(@Body loginRequest: LoginRequest): Call<LoginResponse>
 
-    @POST("guardar-datos/{adultoId}")
-    fun guardarDatos(
-        @Path("adultoId") adultoId: String,
-        @Body datos: Map<String, Any>,
-    ): Call<Void>
 
     @GET("por-usuario/{userId}")
     fun obtenerAdultos(@Path("userId") userId: String): Call<List<Adulto>>
+
+    @GET("info-medicamento-compat/{id}")
+    fun getMedicamentosPorAdulto(@Path("id") id: String): Call<List<Medicamento>>
 }

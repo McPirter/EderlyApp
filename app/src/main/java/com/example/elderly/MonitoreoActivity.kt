@@ -18,6 +18,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.elderly.models.Medicamento
 import com.example.elderly.models.MedicamentoResponse
+import com.example.elderly.models.TempResponse
+import com.example.elderly.models.Temperatura
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
@@ -34,14 +36,15 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.Collections
 import com.example.elderly.network.ApiClient
 
 class MonitoreoActivity : AppCompatActivity() {
 
     private lateinit var messageClient: MessageClient
     private lateinit var sharedPrefs: SharedPreferences
-    private val heartRates = mutableListOf<Float>()
-    private val temperatures = mutableListOf<Float>()
+    private val heartRates = Collections.synchronizedList(mutableListOf<Float>())
+    private val temperatures = Collections.synchronizedList(mutableListOf<Float>())
     private lateinit var adultoId: String
     private lateinit var nombre: String
     private lateinit var recordatorioAdapter: RecordatorioAdapter
@@ -49,7 +52,10 @@ class MonitoreoActivity : AppCompatActivity() {
     private lateinit var barChart: BarChartView
     private val MAX_DATA_POINTS = 7
 
-
+    private var lastTempSendTime: Long = 0
+    private val SEND_INTERVAL_MS = 60_000L // 1 minuto
+    private var lastChartUpdateTime = 0L
+    private val CHART_UPDATE_INTERVAL = 1000L // 1 segundo
 
     private val messageListener = object : MessageClient.OnMessageReceivedListener {
         override fun onMessageReceived(event: MessageEvent) {
@@ -63,6 +69,10 @@ class MonitoreoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_monitoreo)
 
+        // Inicialización en orden correcto
+        sharedPrefs = getSharedPreferences("datos_recibidos", Context.MODE_PRIVATE)
+        lastTempSendTime = sharedPrefs.getLong("lastTempSendTime", 0)
+
         adultoId = intent.getStringExtra("ADULTO_ID") ?: run {
             finish()
             return
@@ -71,12 +81,14 @@ class MonitoreoActivity : AppCompatActivity() {
         lineChart = findViewById(R.id.lineChart)
         barChart = findViewById(R.id.barChart)
 
-
-        sharedPrefs = getSharedPreferences("datos_recibidos", Context.MODE_PRIVATE)
         setupWearableConnection()
         setupCharts()
         setupRecordatorios()
         setupFloatingActionButton()
+    }
+
+    private fun saveLastTempSendTime(time: Long) {
+        sharedPrefs.edit().putLong("lastTempSendTime", time).apply()
     }
 
     private fun setupWearableConnection() {
@@ -88,8 +100,7 @@ class MonitoreoActivity : AppCompatActivity() {
     private fun loadHistoricalData() {
         val jsonArray = JSONArray(sharedPrefs.getString("datos", "[]"))
 
-        // Filtrar los datos correspondientes al adulto
-        val filtrados = mutableListOf<Pair<Float, Float>>() // (heartRate, temperature)
+        val filtrados = mutableListOf<Pair<Float, Float>>()
         for (i in 0 until jsonArray.length()) {
             val item = jsonArray.getJSONObject(i)
             if (item.getString("adultoId") == adultoId) {
@@ -101,7 +112,6 @@ class MonitoreoActivity : AppCompatActivity() {
             }
         }
 
-        // Tomar solo los últimos MAX_DATA_POINTS elementos
         val ultimos = filtrados.takeLast(MAX_DATA_POINTS)
 
         heartRates.clear()
@@ -114,7 +124,6 @@ class MonitoreoActivity : AppCompatActivity() {
         updateCharts()
     }
 
-
     private fun processWearableData(message: String) {
         try {
             val partes = message.split("|")
@@ -122,35 +131,45 @@ class MonitoreoActivity : AppCompatActivity() {
                 val id = partes[1]
                 val temperatura = partes[2].toFloatOrNull()
                 val frecuencia = partes[3].toFloatOrNull()
-                val latitud = partes[4]
-                val longitud = partes[5]
-                val timestamp = partes[6]
-                val nombre = partes[7]
 
                 if (id == adultoId && temperatura != null && frecuencia != null) {
-                    if (heartRates.size >= MAX_DATA_POINTS) heartRates.removeAt(0)
-                    if (temperatures.size >= MAX_DATA_POINTS) temperatures.removeAt(0)
+                    // Validación de rango de temperatura
+                    if (temperatura < 30f || temperatura > 45f) {
+                        Log.w("Temperatura", "Valor fuera de rango: $temperatura")
+                        return
+                    }
 
-                    heartRates.add(frecuencia)
-                    temperatures.add(temperatura)
+                    synchronized(heartRates) {
+                        if (heartRates.size >= MAX_DATA_POINTS) heartRates.removeAt(0)
+                        heartRates.add(frecuencia)
+                    }
+
+                    synchronized(temperatures) {
+                        if (temperatures.size >= MAX_DATA_POINTS) temperatures.removeAt(0)
+                        temperatures.add(temperatura)
+                    }
 
                     saveDataToPreferences(frecuencia, temperatura)
+
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastTempSendTime >= SEND_INTERVAL_MS) {
+                        enviarTemperatura(temperatura)
+                        lastTempSendTime = currentTime
+                        saveLastTempSendTime(currentTime)
+                    }
 
                     runOnUiThread {
                         updateCharts()
                     }
                 }
-
             } else {
-                Log.e("❌ WearableData", "Formato no reconocido o incompleto: $message")
+                Log.e("WearableData", "Formato no reconocido: $message")
             }
         } catch (e: Exception) {
-            Log.e("❌ Error procesando datos", e.toString())
+            Log.e("ProcessData", "Error procesando: $message", e)
+            showToast("Error procesando datos del wearable")
         }
     }
-
-
-
 
     private fun saveDataToPreferences(heartRate: Float, temperature: Float) {
         val jsonArray = JSONArray(sharedPrefs.getString("datos", "[]"))
@@ -165,15 +184,17 @@ class MonitoreoActivity : AppCompatActivity() {
     }
 
     private fun setupCharts() {
-        // Implementa tu lógica de gráficos aquí
         updateCharts()
     }
 
     private fun updateCharts() {
-        lineChart.setData(temperatures)  // Línea: temperatura
-        barChart.setData(heartRates)     // Barras: ritmo cardíaco o presión
+        val now = System.currentTimeMillis()
+        if (now - lastChartUpdateTime > CHART_UPDATE_INTERVAL) {
+            lineChart.setData(temperatures)
+            barChart.setData(heartRates)
+            lastChartUpdateTime = now
+        }
     }
-
 
     private fun setupRecordatorios() {
         val recyclerView = findViewById<RecyclerView>(R.id.rvRecordatorios)
@@ -185,7 +206,7 @@ class MonitoreoActivity : AppCompatActivity() {
             DividerItemDecoration(this, DividerItemDecoration.VERTICAL).apply {
                 setDrawable(ContextCompat.getDrawable(this@MonitoreoActivity, R.drawable.divider)!!)
             }
-        )  // <-- Paréntesis de cierre añadido
+        )
 
         recordatorioAdapter = RecordatorioAdapter(emptyList())
         recyclerView.adapter = recordatorioAdapter
@@ -194,37 +215,40 @@ class MonitoreoActivity : AppCompatActivity() {
     }
 
     private fun loadRecordatoriosFromApi() {
-        ApiClient.instance.getMedicamentosPorAdulto(adultoId).enqueue(object : Callback<List<Medicamento>> {
-            override fun onResponse(call: Call<List<Medicamento>>, response: Response<List<Medicamento>>) {
-                if (response.isSuccessful) {
-                    response.body()?.let { medicamentos ->
-                        val recordatoriosFiltrados = medicamentos
-                            .filter {
-                                val fechaRecordatorio = it.fecha.toLongOrNull() ?: 0
-                                val fechaActual = System.currentTimeMillis()
-                                fechaRecordatorio >= fechaActual - 86400000 // Últimas 24 horas
-                            }
-                            .sortedBy { it.fecha.toLongOrNull() ?: 0 } // Orden ascendente
+        ApiClient.instance.getMedicamentosPorAdulto(adultoId)
+            .enqueue(object : Callback<List<Medicamento>> {
+                override fun onResponse(
+                    call: Call<List<Medicamento>>,
+                    response: Response<List<Medicamento>>
+                ) {
+                    if (response.isSuccessful) {
+                        response.body()?.let { medicamentos ->
+                            val recordatoriosFiltrados = medicamentos
+                                .filter {
+                                    val fechaRecordatorio = it.fecha.toLongOrNull() ?: 0
+                                    val fechaActual = System.currentTimeMillis()
+                                    fechaRecordatorio >= fechaActual - 86400000 // Últimas 24 horas
+                                }
+                                .sortedBy { it.fecha.toLongOrNull() ?: 0 }
 
-                        runOnUiThread {
-                            recordatorioAdapter.updateData(recordatoriosFiltrados)
-
-                            if (recordatoriosFiltrados.isEmpty()) {
-                                showToast("No hay recordatorios recientes")
+                            runOnUiThread {
+                                recordatorioAdapter.updateData(recordatoriosFiltrados)
+                                if (recordatoriosFiltrados.isEmpty()) {
+                                    showToast("No hay recordatorios recientes")
+                                }
                             }
                         }
+                    } else {
+                        Log.e("API Error", "Error: ${response.code()} - ${response.errorBody()?.string()}")
+                        showToast("Error al cargar recordatorios")
                     }
-                } else {
-                    Log.e("API Error", "Error: ${response.code()} - ${response.errorBody()?.string()}")
-                    showToast("Error al cargar recordatorios")
                 }
-            }
 
-            override fun onFailure(call: Call<List<Medicamento>>, t: Throwable) {
-                Log.e("API Failure", "Error de conexión: ${t.message}", t)
-                showToast("Error de conexión: ${t.message ?: "Desconocido"}")
-            }
-        })
+                override fun onFailure(call: Call<List<Medicamento>>, t: Throwable) {
+                    Log.e("API Failure", "Error: ${t.message}", t)
+                    showToast("Error de conexión: ${t.message ?: "Desconocido"}")
+                }
+            })
     }
 
     private fun setupFloatingActionButton() {
@@ -268,6 +292,44 @@ class MonitoreoActivity : AppCompatActivity() {
         return json.toRequestBody("application/json".toMediaType())
     }
 
+    private fun enviarTemperatura(temp: Float) {
+        val temperaturaData = mutableMapOf<String, Any>(
+            "adulto" to adultoId,
+            "fecha" to System.currentTimeMillis(),
+            "temp" to temp
+        )
+
+        val requestBody = createRequestBodyFromMap(temperaturaData)
+
+        ApiClient.instance.registrarTemp(requestBody).enqueue(
+            object : Callback<TempResponse> {
+                override fun onResponse(
+                    call: Call<TempResponse>,
+                    response: Response<TempResponse>
+                ) {
+                    when {
+                        response.isSuccessful -> {
+                            response.body()?.let { body ->
+                                if (body.success) {
+                                    Log.d("API", "Temperatura registrada: $temp°C")
+                                } else {
+                                    Log.e("API Error", "Success false: ${body.message}")
+                                }
+                            }
+                        }
+                        else -> {
+                            Log.e("API Error", "Error ${response.code()}")
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<TempResponse>, t: Throwable) {
+                    Log.e("API Failure", "Error: ${t.message}", t)
+                }
+            }
+        )
+    }
+
     private fun agregarRecordatorio(medicina: String, descripcion: String?, tiempo: Int) {
         val recordatorioData = mutableMapOf<String, Any>(
             "adulto" to adultoId,
@@ -285,36 +347,15 @@ class MonitoreoActivity : AppCompatActivity() {
                     call: Call<MedicamentoResponse>,
                     response: Response<MedicamentoResponse>
                 ) {
-                    when {
-                        response.isSuccessful -> {
-                            response.body()?.let { body ->
-                                if (body.success) {
-                                    showToast(body.message ?: "Recordatorio añadido")
-                                    loadRecordatoriosFromApi()
-                                } else {
-                                    Log.e("API Error", "Success false: ${body.message}")
-                                    showToast(body.message ?: "Error en el servidor")
-                                }
-                            } ?: run {
-                                Log.e("API Error", "Response body is null")
-                                showToast("Respuesta vacía del servidor")
-                            }
-                        }
-                        else -> {
-                            val errorBody = response.errorBody()?.string()
-                            Log.e("API Error", """
-                                Error ${response.code()}
-                                URL: ${call.request().url}
-                                Request: ${recordatorioData}
-                                Response: $errorBody
-                            """.trimIndent())
-                            showToast("Error al guardar (código ${response.code()})")
-                        }
+                    if (response.isSuccessful) {
+                        showToast("Recordatorio añadido")
+                        loadRecordatoriosFromApi()
+                    } else {
+                        showToast("Error al guardar (código ${response.code()})")
                     }
                 }
 
                 override fun onFailure(call: Call<MedicamentoResponse>, t: Throwable) {
-                    Log.e("API Failure", "Error de conexión: ${t.message}", t)
                     showToast("Error de conexión: ${t.message ?: "Desconocido"}")
                 }
             }
@@ -334,7 +375,6 @@ class MonitoreoActivity : AppCompatActivity() {
         }
     }
 
-    // Clase Adapter dentro de la Activity
     inner class RecordatorioAdapter(private var recordatorios: List<Medicamento>) :
         RecyclerView.Adapter<RecordatorioAdapter.RecordatorioViewHolder>() {
 
@@ -353,19 +393,16 @@ class MonitoreoActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: RecordatorioViewHolder, position: Int) {
             val recordatorio = recordatorios[position]
-
             holder.tvMedicina.text = recordatorio.medicina
             holder.tvDescripcion.text = recordatorio.descripcion ?: "Sin descripción"
             holder.tvTiempo.text = "Cada ${recordatorio.tiempo} horas"
 
-            // Formatear fecha
             try {
                 val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
                 val date = Date(recordatorio.fecha.toLong())
                 holder.tvFecha.text = sdf.format(date)
             } catch (e: Exception) {
                 holder.tvFecha.text = recordatorio.fecha
-                Log.e("DateError", "Error al formatear fecha: ${e.message}")
             }
         }
 

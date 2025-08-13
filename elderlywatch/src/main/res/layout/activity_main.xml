@@ -54,6 +54,13 @@
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"/>
 
+        <Button
+            android:id="@+id/btnRec"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="Recordatorios"
+            android:textSize="8dp" />
+
     </LinearLayout>
 
 </androidx.wear.widget.BoxInsetLayout>

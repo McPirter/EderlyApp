@@ -89,9 +89,9 @@ class UbicacionActivity : BaseActivity() {
         for (i in 0 until jsonArray.length()) {
             try {
                 val location = jsonArray.getJSONObject(i)
-                val nombre = location.optString("nombre", "Desconocido")
-                val lat = location.optDouble("lat")
-                val lon = location.optDouble("lon")
+                val nombre = location.optString("nombre", "Cresti")
+                val lat = location.optDouble("lat", 20.4764774)
+                val lon = location.optDouble("lon", -103.4476136)
 
                 if (lat != 0.0 && lon != 0.0) {
                     val punto = GeoPoint(lat, lon)

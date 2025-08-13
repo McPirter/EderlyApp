@@ -3,6 +3,7 @@ package com.example.elderly.presentation
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.widget.Button
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
@@ -10,6 +11,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -31,6 +34,7 @@ import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.example.elderly.R
 import com.example.elderly.presentation.theme.EderlyAppTheme
+import java.util.concurrent.TimeUnit
 
 class MainActivity : Activity(), SensorEventListener {
 
@@ -40,8 +44,19 @@ class MainActivity : Activity(), SensorEventListener {
     private lateinit var heartRateText: TextView
     private lateinit var estimatedTempText: TextView
     private lateinit var gpsService: GPSService
+    private lateinit var syncService: SyncService
 
     private val REQUEST_PERMISSIONS_CODE = 100
+    private val SEND_INTERVAL_MINUTES = 1L // Intervalo de envío en minutos
+    private val SEND_INTERVAL_MS = TimeUnit.MINUTES.toMillis(SEND_INTERVAL_MINUTES)
+    private var lastSendTime = 0L
+    private val handler = Handler(Looper.getMainLooper())
+    private val sendRunnable = object : Runnable {
+        override fun run() {
+            checkAndSendData()
+            handler.postDelayed(this, SEND_INTERVAL_MS)
+        }
+    }
 
     // Datos simulados
     private val edad = 70
@@ -50,10 +65,16 @@ class MainActivity : Activity(), SensorEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContentView(R.layout.activity_main)
 
+        val boton = findViewById<Button>(R.id.btnRec)
+        boton.setOnClickListener {
+            val intent = Intent(this, Recordatorios::class.java) // <<-- aquí va la Activity, no el Adapter
+            startActivity(intent)
+        }
+
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        syncService = SyncService(this)
 
         val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
         val adultoIdGuardado = sharedPref.getString("adultoId", null)
@@ -107,15 +128,57 @@ class MainActivity : Activity(), SensorEventListener {
             permissionsNeeded.add(Manifest.permission.FOREGROUND_SERVICE_LOCATION)
         }
 
-
         if (permissionsNeeded.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), REQUEST_PERMISSIONS_CODE)
         } else {
-            // Si ya tiene permisos, iniciar todo normalmente
-            iniciarSensor()
-            gpsService.startLocationUpdates()
-            iniciarForegroundService()
+            iniciarMonitoreo()
         }
+    }
+
+    private fun iniciarMonitoreo() {
+        iniciarSensor()
+        gpsService.startLocationUpdates()
+        iniciarForegroundService()
+        iniciarEnvioPeriodico()
+    }
+
+    private fun iniciarEnvioPeriodico() {
+        handler.postDelayed(sendRunnable, SEND_INTERVAL_MS)
+    }
+
+    private fun checkAndSendData() {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastSendTime >= SEND_INTERVAL_MS) {
+            enviarDatosActuales()
+            lastSendTime = currentTime
+        }
+    }
+
+    private fun enviarDatosActuales() {
+        val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
+        val adultoId = sharedPref.getString("adultoId", null) ?: return
+        val nombre = sharedPref.getString("adultoNombre", null) ?: return
+        val location = gpsService.getLastKnownLocation() ?: return
+
+        // Obtener los últimos valores de los sensores
+        val heartRate = heartRateText.text.toString()
+            .replace("Ritmo cardíaco: ", "")
+            .replace(" bpm", "")
+            .toFloatOrNull() ?: return
+
+        val temperatura = estimatedTempText.text.toString()
+            .replace("Temperatura estimada: ", "")
+            .replace("°C", "")
+            .toDoubleOrNull() ?: return
+
+        syncService.enviarDatosAlTelefono(
+            adultoId,
+            heartRate,
+            temperatura,
+            location.latitude,
+            location.longitude,
+            nombre
+        )
     }
 
     private fun iniciarForegroundService() {
@@ -152,22 +215,6 @@ class MainActivity : Activity(), SensorEventListener {
                 heartRateText.text = "Ritmo cardíaco: ${heartRate.toInt()} bpm"
                 val temperatura = estimarTemperaturaDinamica(heartRate, edad, presionSistolica, presionDiastolica)
                 estimatedTempText.text = "Temperatura estimada: %.2f°C".format(temperatura)
-
-                val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
-                val adultoId = sharedPref.getString("adultoId", null) ?: return
-                val nombre = sharedPref.getString("adultoNombre", null) ?: return
-                val location = gpsService.getLastKnownLocation() ?: return
-
-                val syncService = SyncService(this)
-                syncService.enviarDatosAlTelefono(
-                    adultoId,
-                    heartRate,
-                    temperatura,
-                    location.latitude,
-                    location.longitude,
-                    nombre
-
-                )
             }
         }
     }
@@ -188,9 +235,7 @@ class MainActivity : Activity(), SensorEventListener {
                 Toast.makeText(this, "Permisos necesarios para la app", Toast.LENGTH_LONG).show()
                 heartRateText.text = "Permisos denegados"
             } else {
-                iniciarSensor()
-                gpsService.startLocationUpdates()
-                iniciarForegroundService()
+                iniciarMonitoreo()
             }
         }
     }
@@ -198,6 +243,8 @@ class MainActivity : Activity(), SensorEventListener {
     override fun onDestroy() {
         super.onDestroy()
         sensorManager.unregisterListener(this)
+        handler.removeCallbacks(sendRunnable)
+        gpsService.stopLocationUpdates()
     }
 }
 

@@ -8,6 +8,9 @@ import com.example.elderly.models.LoginResponse
 import com.example.elderly.models.DashboardData
 import com.example.elderly.models.Medicamento
 import com.example.elderly.models.MedicamentoResponse
+import com.example.elderly.models.TempResponse
+import com.example.elderly.models.Temperatura
+import okhttp3.Request
 import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Body
@@ -39,5 +42,11 @@ interface ApiService {
 
     @GET("info-medicamento-compat/{id}")
     fun getMedicamentosPorAdulto(@Path("id") id: String): Call<List<Medicamento>>
+
+    @POST("registrar-temp")
+    fun registrarTemp(@Body temperatura: RequestBody): Call<TempResponse>
+
+    @GET("info-temp/{id}")
+    fun getInfoTemp(@Path("id") id: String): Call<Temperatura>
 
 }

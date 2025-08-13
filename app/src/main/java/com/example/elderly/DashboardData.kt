@@ -23,8 +23,15 @@ data class Ubicacion(
 )
 
 data class Temperatura(
+    @field: Json (name = "_id") val adulto: AdultoMini,
     val fecha: String,
     val temp: Float
+)
+
+data class TempResponse(
+    @Json(name = "success") val success: Boolean,
+    @Json(name = "message") val message: String? = null,
+    @Json(name = "data") val data: Temperatura?
 )
 
 data class Presion(

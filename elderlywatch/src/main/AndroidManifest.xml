@@ -65,6 +65,9 @@
             android:theme="@style/AppTheme" />
         <activity android:name=".presentation.SeleccionarAdultoActivity"
             android:theme="@style/AppTheme" />
+        <activity android:name=".presentation.Recordatorios"/>
+
+
     </application>
 
 </manifest>

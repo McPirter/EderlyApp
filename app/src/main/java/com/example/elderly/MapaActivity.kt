@@ -13,7 +13,7 @@ class MapaActivity : BaseActivity() {
     override fun getLayoutId(): Int = R.layout.activity_mapa
 
     private lateinit var mapView: MapView
-    private var adultoId: String? = null
+    private var nombre: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,7 +26,7 @@ class MapaActivity : BaseActivity() {
         mapView.setTileSource(TileSourceFactory.MAPNIK) // Fuente de mapas
         mapView.setMultiTouchControls(true)
 
-        adultoId = intent.getStringExtra("adultoId")
+        nombre = intent.getStringExtra("nombre")
         mostrarUbicacion()
     }
 
@@ -37,7 +37,7 @@ class MapaActivity : BaseActivity() {
 
         if (lista.length() == 0) {
             // Si no hay datos, muestra una ubicación de prueba (CDMX)
-            val puntoDefault = GeoPoint(19.4326, -99.1332)
+            val puntoDefault = GeoPoint(20.4765195, -103.4476136)
             val marker = Marker(mapView)
             marker.position = puntoDefault
             marker.title = "Ubicación de prueba"
@@ -49,14 +49,14 @@ class MapaActivity : BaseActivity() {
 
         for (i in 0 until lista.length()) {
             val obj = lista.getJSONObject(i)
-            if (obj.getString("adultoId") == adultoId) {
+            if (obj.getString("nombre") == nombre) {
                 val lat = obj.getDouble("lat")
                 val lon = obj.getDouble("lon")
                 val punto = GeoPoint(lat, lon)
 
                 val marker = Marker(mapView)
                 marker.position = punto
-                marker.title = "Adulto $adultoId"
+                marker.title = "Adulto $nombre"
                 mapView.overlays.add(marker)
 
                 mapView.controller.setZoom(15.0)

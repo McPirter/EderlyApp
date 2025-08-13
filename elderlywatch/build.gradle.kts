@@ -68,6 +68,7 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation(libs.firebase.appdistribution.gradle)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.cardview)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
