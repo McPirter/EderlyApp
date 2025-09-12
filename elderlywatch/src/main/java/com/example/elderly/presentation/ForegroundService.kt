@@ -27,8 +27,8 @@ class ForegroundService : Service(), SensorEventListener {
 
     // Límites
     private val TEMP_MAX = 36.0         // Temperatura en °C
-    private val HR_MAX = 70f          // Frecuencia cardiaca en bpm
-    private val TIEMPO_ENTRE_ALERTAS = 60_000L // 1 minuto
+    private val HR_MAX = 70f            // Frecuencia cardiaca en bpm
+    private val TIEMPO_ENTRE_ALERTAS = 5_000L // 5 segundos
 
     // Última vez que se notificó
     private var ultimaNotificacionTemp: Long = 0

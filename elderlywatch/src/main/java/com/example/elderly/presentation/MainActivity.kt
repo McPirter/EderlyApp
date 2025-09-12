@@ -13,6 +13,7 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -35,6 +36,7 @@ import androidx.wear.tooling.preview.devices.WearDevices
 import com.example.elderly.R
 import com.example.elderly.presentation.theme.EderlyAppTheme
 import java.util.concurrent.TimeUnit
+
 
 class MainActivity : Activity(), SensorEventListener {
 
@@ -124,9 +126,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.FOREGROUND_SERVICE_LOCATION)
-        }
+
 
         if (permissionsNeeded.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), REQUEST_PERMISSIONS_CODE)
@@ -229,7 +229,13 @@ class MainActivity : Activity(), SensorEventListener {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
         if (requestCode == REQUEST_PERMISSIONS_CODE) {
+            // Log para depuración
+            for (i in permissions.indices) {
+                Log.d("PermisosApp", "Permiso: ${permissions[i]} - Resultado: ${grantResults[i]}")
+            }
+
             val denied = grantResults.any { it != PackageManager.PERMISSION_GRANTED }
             if (denied) {
                 Toast.makeText(this, "Permisos necesarios para la app", Toast.LENGTH_LONG).show()
@@ -239,6 +245,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }
     }
+
 
     override fun onDestroy() {
         super.onDestroy()

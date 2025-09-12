@@ -37,7 +37,7 @@ class MapaActivity : BaseActivity() {
 
         if (lista.length() == 0) {
             // Si no hay datos, muestra una ubicación de prueba (CDMX)
-            val puntoDefault = GeoPoint(20.4765195, -103.4476136)
+            val puntoDefault = GeoPoint(20.483450, -103.533339)
             val marker = Marker(mapView)
             marker.position = puntoDefault
             marker.title = "Ubicación de prueba"

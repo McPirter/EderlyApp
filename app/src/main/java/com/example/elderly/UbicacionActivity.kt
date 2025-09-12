@@ -158,7 +158,7 @@ class UbicacionActivity : BaseActivity() {
     }
 
     private fun showDefaultLocation() {
-        val defaultPoint = GeoPoint(19.4326, -99.1332)
+        val defaultPoint = GeoPoint(20.483450, -103.533339)
         mapView.controller.animateTo(defaultPoint)
         mapView.controller.setZoom(12.0)
 
