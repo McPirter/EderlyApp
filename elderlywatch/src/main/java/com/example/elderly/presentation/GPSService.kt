@@ -3,6 +3,7 @@ package com.example.elderly.presentation
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import android.location.Location // Asegúrate de importar esta
 import android.os.Looper
 import android.util.Log
 import com.google.android.gms.location.*
@@ -17,15 +18,21 @@ class GPSService(private val context: Context) {
         setMinUpdateIntervalMillis(5_000L)
     }.build()
 
-    private lateinit var locationCallback: LocationCallback
+    private var locationCallback: LocationCallback? = null
 
     @SuppressLint("MissingPermission")
     fun startLocationUpdates() {
+        // Evitar crear múltiples callbacks si ya existe
+        if (locationCallback != null) return
+
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 val location = locationResult.lastLocation ?: return
                 val lat = location.latitude
                 val lon = location.longitude
+
+                // --- LOG DE CONFIRMACIÓN AÑADIDO ---
+                Log.d("GPSService", "📍 Coordenadas RECIBIDAS: Lat=$lat, Lon=$lon")
 
                 // Guardar coordenadas
                 val sharedPref: SharedPreferences = context.getSharedPreferences("gps_prefs", Context.MODE_PRIVATE)
@@ -34,32 +41,32 @@ class GPSService(private val context: Context) {
                     putString("longitude", lon.toString())
                     apply()
                 }
-
-                Log.d("GPSService", "Coordenadas: Lat=$lat, Lon=$lon")
             }
         }
 
-        Log.d("GPSService", "Iniciando actualizaciones con nueva API de LocationRequest")
+        Log.d("GPSService", "Iniciando escucha de actualizaciones de ubicación.")
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
-            locationCallback,
+            locationCallback!!,
             Looper.getMainLooper()
         )
     }
 
     fun stopLocationUpdates() {
-        if (::locationCallback.isInitialized) {
-            fusedLocationClient.removeLocationUpdates(locationCallback)
+        locationCallback?.let {
+            fusedLocationClient.removeLocationUpdates(it)
+            locationCallback = null // Limpiar para evitar fugas de memoria
+            Log.d("GPSService", "Deteniendo escucha de actualizaciones.")
         }
     }
 
-    fun getLastKnownLocation(): android.location.Location? {
+    fun getLastKnownLocation(): Location? {
         val sharedPref: SharedPreferences = context.getSharedPreferences("gps_prefs", Context.MODE_PRIVATE)
         val lat = sharedPref.getString("latitude", null)?.toDoubleOrNull()
         val lon = sharedPref.getString("longitude", null)?.toDoubleOrNull()
 
         return if (lat != null && lon != null) {
-            android.location.Location("gps").apply {
+            Location("gps_prefs").apply {
                 latitude = lat
                 longitude = lon
             }
@@ -67,5 +74,4 @@ class GPSService(private val context: Context) {
             null
         }
     }
-
 }

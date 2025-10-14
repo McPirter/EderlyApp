@@ -71,6 +71,6 @@
         android:layout_margin="16dp"
         android:contentDescription="Añadir recordatorio"
         android:src="@drawable/ic_add"
-    app:backgroundTint="?attr/colorPrimary"
+    app:backgroundTint="#4FA4F4"
     app:tint="@android:color/white"/>
 </RelativeLayout>
