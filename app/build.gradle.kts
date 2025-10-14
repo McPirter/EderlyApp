@@ -9,6 +9,8 @@ android {
     namespace = "com.example.elderly"
     compileSdk = 35
 
+
+
     defaultConfig {
         applicationId = "com.example.elderly"
         minSdk = 30
@@ -69,6 +71,8 @@ dependencies {
 
     // Mapas
     implementation("org.osmdroid:osmdroid-android:6.1.14")
+    testImplementation("junit:junit:4.13.2")
+
 
     // Testing
     testImplementation(libs.junit)
@@ -78,4 +82,5 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    testImplementation(kotlin("test"))
 }

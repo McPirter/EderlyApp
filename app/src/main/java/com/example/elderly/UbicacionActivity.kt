@@ -6,21 +6,29 @@ import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import androidx.core.content.ContextCompat
-import org.json.JSONArray
-import org.json.JSONException
+import com.example.elderly.models.AdultoList
+import com.example.elderly.network.ApiClient
+import org.json.JSONObject
+import org.osmdroid.api.IMapController
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class UbicacionActivity : BaseActivity() {
 
     private lateinit var mapView: MapView
     private lateinit var listView: ListView
-    private val markers = mutableListOf<Marker>()
-    private val ubicaciones = mutableListOf<GeoPoint>()
-    private val nombresAdultos = mutableListOf<String>()
+    private lateinit var mapController: IMapController
+
+    private val markerMap = mutableMapOf<String, Marker>()
+    private val geoPointMap = mutableMapOf<String, GeoPoint>()
+    private val adultInfoList = mutableListOf<Pair<String, String>>() // Pares de (ID, Nombre)
 
     override fun getLayoutId(): Int = R.layout.activity_ubicacion
     override fun getNavItemId(): Int = R.id.nav_location
@@ -28,7 +36,8 @@ class UbicacionActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setupMap()
-        loadLocations()
+        loadInitialDataFromApi()
+        observeRealTimeUpdates()
     }
 
     private fun setupMap() {
@@ -37,93 +46,105 @@ class UbicacionActivity : BaseActivity() {
             load(applicationContext, getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
         }
 
-        // Especificación explícita de tipos para findViewById
         mapView = findViewById<MapView>(R.id.mapView).apply {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
+            mapController = this.controller
         }
 
-        // Especificación explícita de tipos para findViewById
         listView = findViewById<ListView>(R.id.listViewAdultos).apply {
             choiceMode = ListView.CHOICE_MODE_SINGLE
             setOnItemClickListener { _, _, position, _ ->
-                if (position in ubicaciones.indices) {
-                    selectLocation(position)
+                if (position < adultInfoList.size) {
+                    val adultoId = adultInfoList[position].first
+                    selectLocation(adultoId)
                 }
             }
         }
     }
 
-    private fun loadLocations() {
-        try {
-            val prefs = getSharedPreferences("datos_recibidos", Context.MODE_PRIVATE)
-            val jsonData = prefs.getString("datos", "[]") ?: "[]"
+    private fun loadInitialDataFromApi() {
+        // --- CAMBIO CLAVE 1: OBTENCIÓN ROBUSTA DEL userId ---
+        // Primero intenta obtenerlo del Intent, si no, búscalo en SharedPreferences (como fallback)
+        val prefs = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val userId = intent.getStringExtra("userId") ?: prefs.getString("userId", null)
 
-            val jsonArray = JSONArray(jsonData)
-            if (jsonArray.length() > 0) {
-                processLocations(jsonArray)
-            } else {
-                val gpsPrefs = getSharedPreferences("gps_prefs", Context.MODE_PRIVATE)
-                val lat = gpsPrefs.getString("latitude", null)?.toDoubleOrNull()
-                val lon = gpsPrefs.getString("longitude", null)?.toDoubleOrNull()
+        if (userId == null) {
+            Log.e("UbicacionActivity", "No se encontró userId. Mostrando ubicación por defecto.")
+            showDefaultState()
+            return
+        }
 
-                if (lat != null && lon != null) {
-                    processLocations(JSONArray("[{\"nombre\":\"GPS\",\"lat\":$lat,\"lon\":$lon}]"))
+        ApiClient.instance.getAdultosPorUsuario(userId).enqueue(object : Callback<List<AdultoList>> {
+            override fun onResponse(call: Call<List<AdultoList>>, response: Response<List<AdultoList>>) {
+                if (response.isSuccessful) {
+                    val adultos = response.body() ?: emptyList()
+                    if (adultos.isNotEmpty()) {
+                        clearData()
+                        adultos.forEach { adulto ->
+                            adultInfoList.add(Pair(adulto._id, adulto.nombre))
+                            loadLastKnownLocationFor(adulto._id, adulto.nombre)
+                        }
+                        setupListView(adultInfoList.map { it.second })
+                        zoomToFitAllMarkers() // Centramos el mapa después de cargar todo
+                    } else {
+                        showDefaultState()
+                    }
                 } else {
-                    showDefaultLocation()
+                    showDefaultState()
                 }
             }
+            override fun onFailure(call: Call<List<AdultoList>>, t: Throwable) {
+                Log.e("UbicacionActivity", "Error al cargar la lista de adultos", t)
+                showDefaultState()
+            }
+        })
+    }
 
-            Log.d("Ubicacion", "Datos cargados: $jsonData")
+    // El resto del código se mantiene muy similar, pero con la lógica de actualización corregida.
 
-        } catch (e: JSONException) {
-            Log.e("Ubicacion", "Error parsing locations", e)
-            showDefaultLocation()
+    private fun loadLastKnownLocationFor(adultoId: String, nombre: String) {
+        val prefs = getSharedPreferences("ubicaciones", Context.MODE_PRIVATE)
+        val jsonString = prefs.getString("ultima_ubicacion_$adultoId", null)
+        jsonString?.let {
+            try {
+                val json = JSONObject(it)
+                val lat = json.getDouble("lat")
+                val lon = json.getDouble("lon")
+                if (lat != 0.0 && lon != 0.0) {
+                    addOrUpdateMarker(adultoId, nombre, GeoPoint(lat, lon))
+                }
+            } catch (e: Exception) { /* Ignorar error */ }
         }
     }
 
-
-    private fun processLocations(jsonArray: JSONArray) {
-        clearData()
-
-        for (i in 0 until jsonArray.length()) {
-            try {
-                val location = jsonArray.getJSONObject(i)
-                val nombre = location.optString("nombre", "Cresti")
-                val lat = location.optDouble("lat", 20.4764774)
-                val lon = location.optDouble("lon", -103.4476136)
-
-                if (lat != 0.0 && lon != 0.0) {
-                    val punto = GeoPoint(lat, lon)
-                    val name = "Adulto $nombre"
-
-                    ubicaciones.add(punto)
-                    nombresAdultos.add(name)
-                    markers.add(createMarker(punto, name))
-                }
-            } catch (e: Exception) {
-                Log.e("Ubicacion", "Error procesando ubicación $i", e)
+    private fun observeRealTimeUpdates() {
+        WearableDataRepository.nuevosDatos.observe(this) { datos ->
+            if (datos.lat != 0.0 && datos.lon != 0.0) {
+                Log.d("UbicacionActivity", "📍¡Ubicación en tiempo real para ${datos.adultoId}!")
+                val nombre = adultInfoList.find { it.first == datos.adultoId }?.second ?: "Desconocido"
+                addOrUpdateMarker(datos.adultoId, nombre, GeoPoint(datos.lat, datos.lon))
             }
         }
+    }
 
-        if (ubicaciones.isNotEmpty()) {
-            showLocationsOnMap()
+    private fun addOrUpdateMarker(adultoId: String, nombre: String, point: GeoPoint) {
+        geoPointMap[adultoId] = point
+        if (markerMap.containsKey(adultoId)) {
+            markerMap[adultoId]?.position = point
         } else {
-            showDefaultLocation()
+            val newMarker = createMarker(point, nombre)
+            markerMap[adultoId] = newMarker
+            mapView.overlays.add(newMarker)
         }
+        mapView.invalidate()
     }
 
     private fun clearData() {
         mapView.overlays.clear()
-        markers.clear()
-        ubicaciones.clear()
-        nombresAdultos.clear()
-    }
-
-    private fun showLocationsOnMap() {
-        mapView.overlays.addAll(markers)
-        setupListView(nombresAdultos)
-        selectFirstLocation()
+        markerMap.clear()
+        geoPointMap.clear()
+        adultInfoList.clear()
     }
 
     private fun createMarker(point: GeoPoint, title: String): Marker {
@@ -136,37 +157,50 @@ class UbicacionActivity : BaseActivity() {
     }
 
     private fun setupListView(items: List<String>) {
-        listView.adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_list_item_activated_1,
-            items
-        )
+        listView.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_activated_1, items)
     }
 
-    private fun selectFirstLocation() {
-        if (ubicaciones.isNotEmpty()) {
-            selectLocation(0)
-        }
-    }
-
-    private fun selectLocation(position: Int) {
-        if (position in ubicaciones.indices) {
+    private fun selectLocation(adultoId: String) {
+        val position = adultInfoList.indexOfFirst { it.first == adultoId }
+        if (position != -1) {
             listView.setItemChecked(position, true)
-            mapView.controller.animateTo(ubicaciones[position])
-            mapView.controller.setZoom(15.0)
+        }
+        geoPointMap[adultoId]?.let { point ->
+            mapController.animateTo(point)
+            mapController.setZoom(18.0)
         }
     }
 
-    private fun showDefaultLocation() {
+    private fun showDefaultState() {
         val defaultPoint = GeoPoint(20.483450, -103.533339)
-        mapView.controller.animateTo(defaultPoint)
-        mapView.controller.setZoom(12.0)
+        mapController.setCenter(defaultPoint)
+        mapController.setZoom(10.0)
+        setupListView(listOf("Ubicaciòn Actual"))
+    }
 
-        listView.adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_list_item_1,
-            listOf("No hay ubicaciones disponibles")
-        )
+    // --- CAMBIO CLAVE 2: NUEVA FUNCIÓN PARA CENTRAR EL MAPA ---
+    private fun zoomToFitAllMarkers() {
+        if (geoPointMap.isEmpty()) {
+            showDefaultState()
+            return
+        }
+
+        if (geoPointMap.size == 1) {
+            // Si solo hay un marcador, lo centramos con un zoom fijo
+            mapController.setCenter(geoPointMap.values.first())
+            mapController.setZoom(16.0)
+        } else {
+            // Si hay varios, calculamos el recuadro que los contiene a todos
+            val boundingBox = BoundingBox.fromGeoPoints(geoPointMap.values.toList())
+
+            // --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
+            // Usamos post() para asegurarnos de que el mapa ya se midió a sí mismo
+            mapView.post {
+                // Hacemos zoom para que todos los marcadores quepan en la pantalla,
+                // con un pequeño margen de 100 píxeles.
+                mapView.zoomToBoundingBox(boundingBox, true, 100)
+            }
+        }
     }
 
     override fun onResume() {

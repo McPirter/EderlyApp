@@ -42,23 +42,30 @@ class SeleccionarAdultoActivity : AppCompatActivity() {
             }
         })
 
+        // En SeleccionarAdultoActivity.kt
+
         adultosListView.setOnItemClickListener { _, _, position, _ ->
             adultoSeleccionadoId = adultos[position]._id
             val adultoNombre = adultos[position].nombre
 
-// Guardar también en SharedPreferences si lo deseas
+            // Guardar en SharedPreferences (esto ya estaba bien)
             val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
             sharedPref.edit().putString("adultoId", adultoSeleccionadoId)
                 .putString("adultoNombre", adultoNombre)
                 .apply()
 
+            // --- CAMBIO CLAVE AQUÍ ---
+            // Creamos el Intent para ir a MainActivity
             val intent = Intent(this, MainActivity::class.java).apply {
+                // Añadimos estas dos banderas mágicas
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+
+                // También puedes seguir pasando los extras, es una buena práctica
                 putExtra("adultoId", adultoSeleccionadoId)
                 putExtra("adultoNombre", adultoNombre)
             }
             startActivity(intent)
-            finish()
-
+            finish() // Cierra la pantalla de selección
         }
     }
 }

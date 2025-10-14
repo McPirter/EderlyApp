@@ -7,14 +7,18 @@ import com.google.android.gms.wearable.Wearable
 class SyncService(private val context: Context) {
 
     fun enviarDatosAlTelefono(
-        adultoId: String,
+        adultoId: String?,
         heartRate: Float,
         temperatura: Double,
         latitud: Double,
         longitud: Double,
-        nombre: String
+        nombre: String?
     ) {
         val mensaje = "datos|$adultoId|$heartRate|$temperatura|$latitud|$longitud|$nombre|${System.currentTimeMillis()}"
+
+        // --- LOG AÑADIDO AQUÍ ---
+        Log.d("SyncService", "📦 Contenido del mensaje a enviar: $mensaje")
+
         val client = Wearable.getMessageClient(context)
 
         Wearable.getNodeClient(context).connectedNodes

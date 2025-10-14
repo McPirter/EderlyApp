@@ -12,31 +12,29 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.IBinder
 import android.util.Log
+import com.example.elderly.R // Asegúrate de que esta importación esté presente
 import java.util.*
 
 class ForegroundService : Service(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
-    private var heartRate: Float = 0f
-    private var temperatura: Double = 0.0
-    private var latitud: Double = 0.0
-    private var longitud: Double = 0.0
     private lateinit var syncService: SyncService
+    private lateinit var gpsService: GPSService // Añadimos el servicio de GPS
+
+    private var heartRate: Float = 0f
+    private var temperaturaEstimada: Double = 0.0 // Usaremos la temperatura estimada
+
+    // Datos simulados para la estimación de temperatura
+    private val edad = 70
+    private val presionSistolica = 135
+    private val presionDiastolica = 85
 
     private val timer = Timer()
-
-    // Límites
-    private val TEMP_MAX = 36.0         // Temperatura en °C
-    private val HR_MAX = 70f            // Frecuencia cardiaca en bpm
-    private val TIEMPO_ENTRE_ALERTAS = 5_000L // 5 segundos
-
-    // Última vez que se notificó
-    private var ultimaNotificacionTemp: Long = 0
-    private var ultimaNotificacionHR: Long = 0
 
     override fun onCreate() {
         super.onCreate()
         syncService = SyncService(this)
+        gpsService = GPSService(this) // Inicializamos el servicio de GPS
         startForegroundServiceNotification()
         iniciarSensores()
         iniciarEnvioPeriodico()
@@ -44,31 +42,43 @@ class ForegroundService : Service(), SensorEventListener {
 
     private fun iniciarSensores() {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-
-        // Ritmo cardiaco
         val heartRateSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
         sensorManager.registerListener(this, heartRateSensor, SensorManager.SENSOR_DELAY_NORMAL)
-
-        // Temperatura (si el reloj tiene este sensor)
-        val tempSensor = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE)
-        if (tempSensor != null) {
-            sensorManager.registerListener(this, tempSensor, SensorManager.SENSOR_DELAY_NORMAL)
-        }
+        gpsService.startLocationUpdates() // Iniciamos la escucha del GPS
     }
 
     private fun iniciarEnvioPeriodico() {
         timer.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
+                // Obtenemos una instancia de SharedPreferences dentro del hilo
+                val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
+
+                // Leemos el ID y el nombre guardados
+                val adultoId = sharedPref.getString("adultoId", null)
+                val nombre = sharedPref.getString("adultoNombre", null)
+
+                // Si no hay datos de login, no enviamos nada
+                if (adultoId == null || nombre == null) {
+                    Log.w("ForegroundService", "Envío cancelado, no hay datos de login en SharedPreferences.")
+                    return
+                }
+
+                // Obtenemos la última ubicación conocida
+                val location = gpsService.getLastKnownLocation()
+                val latitud = location?.latitude ?: 0.0
+                val longitud = location?.longitude ?: 0.0
+
+                // Llamamos al servicio con los DATOS REALES
                 syncService.enviarDatosAlTelefono(
-                    "adultoId",
+                    adultoId,
                     heartRate,
-                    temperatura,
+                    temperaturaEstimada,
                     latitud,
                     longitud,
-                    "nombre"
+                    nombre
                 )
             }
-        }, 0, 10_000) // cada 10 segundos
+        }, 5000, 10_000) // Espera 5 segundos para empezar y luego cada 1 minuto
     }
 
     private fun startForegroundServiceNotification() {
@@ -82,65 +92,34 @@ class ForegroundService : Service(), SensorEventListener {
 
         val notification: Notification = Notification.Builder(this, channelId)
             .setContentTitle("Monitoreo activo")
-            .setContentText("Enviando datos del usuario")
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentText("Enviando datos de salud.")
+            .setSmallIcon(android.R.drawable.ic_media_play) // Usa un ícono de tu app
             .build()
 
         startForeground(1, notification)
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        when (event.sensor.type) {
-            Sensor.TYPE_HEART_RATE -> {
-                heartRate = event.values[0]
-                Log.d("SensorService", "HR: $heartRate")
-
-                if (heartRate > HR_MAX &&
-                    System.currentTimeMillis() - ultimaNotificacionHR > TIEMPO_ENTRE_ALERTAS
-                ) {
-                    mostrarNotificacionAlerta(
-                        "Frecuencia cardiaca alta",
-                        "Se detectó un ritmo cardiaco de $heartRate bpm"
-                    )
-                    ultimaNotificacionHR = System.currentTimeMillis()
-                }
-            }
-            Sensor.TYPE_AMBIENT_TEMPERATURE -> {
-                temperatura = event.values[0].toDouble()
-                Log.d("SensorService", "Temp: $temperatura")
-
-                if (temperatura > TEMP_MAX &&
-                    System.currentTimeMillis() - ultimaNotificacionTemp > TIEMPO_ENTRE_ALERTAS
-                ) {
-                    mostrarNotificacionAlerta(
-                        "Temperatura elevada",
-                        "La temperatura es de $temperatura °C"
-                    )
-                    ultimaNotificacionTemp = System.currentTimeMillis()
-                }
+        if (event.sensor.type == Sensor.TYPE_HEART_RATE) {
+            val hr = event.values[0]
+            if (hr > 0) {
+                heartRate = hr
+                // Calculamos la temperatura estimada cada vez que el HR cambia
+                temperaturaEstimada = estimarTemperaturaDinamica(hr, edad, presionSistolica, presionDiastolica)
+                Log.d("ForegroundService", "HR: $heartRate, Temp Estimada: $temperaturaEstimada")
             }
         }
     }
 
-    private fun mostrarNotificacionAlerta(titulo: String, mensaje: String) {
-        val channelId = "alert_channel"
-        val channel = NotificationChannel(
-            channelId,
-            "Alertas de Monitoreo",
-            NotificationManager.IMPORTANCE_HIGH
-        )
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
-
-        val notification: Notification = Notification.Builder(this, channelId)
-            .setContentTitle(titulo)
-            .setContentText(mensaje)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setAutoCancel(true)
-            .build()
-
-        // ID único para cada alerta
-        manager.notify((System.currentTimeMillis() % 10000).toInt(), notification)
+    // Función para estimar la temperatura (la movemos aquí)
+    private fun estimarTemperaturaDinamica(
+        heartRate: Float,
+        edad: Int,
+        sistolica: Int,
+        diastolica: Int
+    ): Double {
+        return 36.8 - (0.005 * (edad - 30)) - (0.002 * (sistolica - 120)) +
+                (0.0015 * (diastolica - 80)) + (0.01 * (heartRate - 60))
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -149,6 +128,7 @@ class ForegroundService : Service(), SensorEventListener {
         super.onDestroy()
         timer.cancel()
         sensorManager.unregisterListener(this)
+        gpsService.stopLocationUpdates()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

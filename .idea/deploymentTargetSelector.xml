@@ -2,23 +2,23 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="elderlywatch">
+      <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-08-13T17:11:52.212538900Z">
+        <DropdownSelection timestamp="2025-10-21T05:06:25.173800200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="Default" identifier="serial=192.168.249.18:40483;connection=d0d735fc" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CW6051EEV" />
             </handle>
           </Target>
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="app">
+      <SelectionState runConfigName="elderlywatch">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-08-13T16:31:13.840205100Z">
+        <DropdownSelection timestamp="2025-10-21T05:01:45.201398900Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\sachi\.android\avd\Wear_OS_Rectangular.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CW6051EEV" />
             </handle>
           </Target>
         </DropdownSelection>
