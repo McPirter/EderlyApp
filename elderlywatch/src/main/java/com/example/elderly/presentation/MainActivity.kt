@@ -119,7 +119,7 @@ class MainActivity : Activity(), SensorEventListener {
         //iniciarEnvioPeriodico()
     }
 
-    private fun iniciarEnvioPe3riodico() {
+    private fun iniciarEnvioPeriodico() {
         handler.removeCallbacks(sendRunnable) // Limpiamos cualquier runnable anterior
         handler.post(sendRunnable) // Iniciamos inmediatamente y luego se programa el siguiente
     }
