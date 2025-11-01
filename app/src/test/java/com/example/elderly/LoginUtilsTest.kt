@@ -22,7 +22,7 @@ class LoginUtilsTest {
         assertFalse(resultado)
     }
 
-    @Test
+    @Test //hola
     fun `retorna true si ambos campos llenos`() {
         println("Test: Usuario y contraseña llenos")
         val resultado = validarCredenciales("user", "1234")
