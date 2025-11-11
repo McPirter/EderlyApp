@@ -2,9 +2,9 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="app">
+      <SelectionState runConfigName="elderlywatch">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-10-21T05:06:25.173800200Z">
+        <DropdownSelection timestamp="2025-10-21T05:01:45.201398900Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CW6051EEV" />
@@ -13,12 +13,12 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="elderlywatch">
+      <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-10-21T05:01:45.201398900Z">
+        <DropdownSelection timestamp="2025-11-10T22:42:54.975185100Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CW6051EEV" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=RFAW41PSS4Y" />
             </handle>
           </Target>
         </DropdownSelection>
