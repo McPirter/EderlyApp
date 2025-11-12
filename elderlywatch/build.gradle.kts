@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.firebase.appdistribution.gradle)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.cardview)
+    implementation(libs.androidx.constraintlayout)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)

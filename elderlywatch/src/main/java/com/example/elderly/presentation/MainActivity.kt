@@ -13,46 +13,47 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.elderly.R
 import java.util.concurrent.TimeUnit
+import android.animation.ObjectAnimator
+import android.view.animation.DecelerateInterpolator
+
 
 class MainActivity : Activity(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var heartRateSensor: Sensor? = null
+
+    // Referencias a la UI
     private lateinit var heartRateText: TextView
     private lateinit var estimatedTempText: TextView
+    private lateinit var progressHeartRate: ProgressBar
+    private lateinit var progressTemperature: ProgressBar
+
+    // Servicios (se mantienen)
     private lateinit var gpsService: GPSService
     private lateinit var syncService: SyncService
 
-    private val SEND_INTERVAL_MS = TimeUnit.MINUTES.toMillis(1L)
-    private var lastSendTime = 0L
-    private val handler = Handler(Looper.getMainLooper())
-    private val sendRunnable = object : Runnable {
-        override fun run() {
-            checkAndSendData()
-            handler.postDelayed(this, SEND_INTERVAL_MS)
-        }
-    }
-
+    // Datos simulados (se mantienen)
     private val edad = 70
     private val presionSistolica = 135
     private val presionDiastolica = 85
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Establece el nuevo layout que creamos
         setContentView(R.layout.activity_main)
 
         // Obtenemos SharedPreferences UNA SOLA VEZ al principio
         val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
 
-        // --- Log de Verificación ---
+        // --- Log de Verificación (se mantiene) ---
         val idGuardado = sharedPref.getString("adultoId", "NADA GUARDADO")
         val nombreGuardado = sharedPref.getString("adultoNombre", "NADA GUARDADO")
         Log.d("LOGIN_CHECK", "--- Verificando datos al crear MainActivity ---")
@@ -69,8 +70,12 @@ class MainActivity : Activity(), SensorEventListener {
         // Referencias a la UI
         heartRateText = findViewById(R.id.heartRateText)
         estimatedTempText = findViewById(R.id.estimatedTempText)
+        progressHeartRate = findViewById(R.id.progress_heart_rate)
+        progressTemperature = findViewById(R.id.progress_temperature)
         val nombreTextView = findViewById<TextView>(R.id.nombreAdultoText)
-        val boton = findViewById<Button>(R.id.btnRec)
+
+        // Botones (ahora ambos son ImageButton)
+        val boton = findViewById<ImageButton>(R.id.btnRec) // <-- Cambio aquí
         val btnLogin = findViewById<ImageButton>(R.id.btnIrAlLogin)
 
         // Configuración de listeners
@@ -87,13 +92,15 @@ class MainActivity : Activity(), SensorEventListener {
             nombreTextView.text = nombreAdulto
             nombreTextView.visibility = TextView.VISIBLE
         } else {
-            nombreTextView.visibility = TextView.GONE
+            nombreTextView.visibility = TextView.GONE // Ocultar si no hay nombre
         }
 
         // Iniciar procesos
         checkAndRequestPermissions()
         val temperatura = estimarTemperatura(edad, presionSistolica, presionDiastolica)
-        estimatedTempText.text = "Temperatura estimada: %.2f°C".format(temperatura)
+
+        // Establecer un valor inicial en la UI
+        actualizarMedidores(0f, temperatura) // Mostramos 0 bpm y la temp base
     }
 
     private fun checkAndRequestPermissions() {
@@ -114,64 +121,20 @@ class MainActivity : Activity(), SensorEventListener {
     private fun iniciarMonitoreo() {
         iniciarSensor()
         gpsService.startLocationUpdates()
+        // El servicio en segundo plano sigue siendo el responsable de ENVIAR datos
         val intent = Intent(this, ForegroundService::class.java)
         ContextCompat.startForegroundService(this, intent)
-        //iniciarEnvioPeriodico()
     }
 
-    private fun iniciarEnvioPeriodico() {
-        handler.removeCallbacks(sendRunnable) // Limpiamos cualquier runnable anterior
-        handler.post(sendRunnable) // Iniciamos inmediatamente y luego se programa el siguiente
-    }
-
-    private fun checkAndSendData() {
-        enviarDatosActuales()
-    }
-
-    private fun enviarDatosActuales() {
-        val sharedPref = getSharedPreferences("MisPreferencias", Context.MODE_PRIVATE)
-        val adultoId = sharedPref.getString("adultoId", "ID_NO_ENCONTRADO")
-        val nombre = sharedPref.getString("adultoNombre", "NOMBRE_NO_ENCONTRADO")
-        val location = gpsService.getLastKnownLocation()
-
-        val heartRate = heartRateText.text.toString().filter { it.isDigit() }.toFloatOrNull() ?: 0.0f
-        val temperatura = estimatedTempText.text.toString().substringAfter(": ").substringBefore("°C").toDoubleOrNull() ?: 0.0
-
-        Log.d("DATOS_A_ENVIAR", """
-            --- Intentando enviar datos ---
-            - ID Leído:          $adultoId
-            - Nombre Leído:      $nombre
-            - Ritmo Cardíaco:    $heartRate
-            - Temperatura:       $temperatura
-            - Latitud:           ${location?.latitude ?: "No disponible"}
-            - Longitud:          ${location?.longitude ?: "No disponible"}
-            -------------------------------
-        """)
-
-        // Solo cancelamos si faltan los datos del login
-        if (adultoId == "ID_NO_ENCONTRADO" || nombre == "NOMBRE_NO_ENCONTRADO") {
-            Log.w("DATOS_A_ENVIAR", "Envío cancelado: Faltan datos del login.")
-            return
-        }
-
-        val latitudParaEnviar = location?.latitude ?: 0.0
-        val longitudParaEnviar = location?.longitude ?: 0.0
-
-        syncService.enviarDatosAlTelefono(
-            adultoId,
-            heartRate,
-            temperatura,
-            latitudParaEnviar,
-            longitudParaEnviar,
-            nombre
-        )
-    }
+    // Ya no necesitamos iniciarEnvioPeriodico(), checkAndSendData(), ni enviarDatosActuales() aquí.
+    // Fueron eliminados.
 
     private fun iniciarSensor() {
         heartRateSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         } ?: run {
-            heartRateText.text = "Sensor de ritmo cardíaco no disponible"
+            heartRateText.text = "N/A"
+            Toast.makeText(this, "Sensor de ritmo no disponible", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -179,14 +142,34 @@ class MainActivity : Activity(), SensorEventListener {
         if (event?.sensor?.type == Sensor.TYPE_HEART_RATE) {
             val hr = event.values[0]
             if (hr > 0) {
-                heartRateText.text = "Ritmo cardíaco: ${hr.toInt()} bpm"
                 val temp = estimarTemperaturaDinamica(hr, edad, presionSistolica, presionDiastolica)
-                estimatedTempText.text = "Temperatura estimada: %.2f°C".format(temp)
+
+                // --- CORRECCIÓN CLAVE ---
+                // Ya no actualizamos los TextViews aquí.
+                // Llamamos a la función centralizada para que actualice TODO.
+                actualizarMedidores(hr, temp)
             }
         }
     }
 
-    // Funciones de estimación de temperatura, onAccuracyChanged, etc. se mantienen igual
+    /**
+     * Nueva función para actualizar todos los elementos de la UI a la vez.
+     */
+    private fun actualizarMedidores(ritmo: Float, temp: Double) {
+
+        // --- 1. Actualizar Texto ---
+        heartRateText.text = "${ritmo.toInt()} bpm"
+        estimatedTempText.text = "%.1f°C".format(temp)
+
+        // --- 2. Actualizar Medidor de Ritmo Cardíaco ---
+        progressHeartRate.progress = ritmo.toInt().coerceAtMost(150)
+
+        // --- 3. Actualizar Medidor de Temperatura ---
+        val tempProgress = ((temp - 30) * 10).toInt() // De 30-40 a 0-100
+        progressTemperature.progress = tempProgress.coerceIn(0, 100)
+    }
+
+    // Funciones de estimación de temperatura (se mantienen)
     private fun estimarTemperatura(edad: Int, sistolica: Int, diastolica: Int): Double {
         return 36.8 - (0.005 * (edad - 30)) - (0.002 * (sistolica - 120)) + (0.0015 * (diastolica - 80))
     }
@@ -218,7 +201,7 @@ class MainActivity : Activity(), SensorEventListener {
     override fun onDestroy() {
         super.onDestroy()
         sensorManager.unregisterListener(this)
-        handler.removeCallbacks(sendRunnable)
         gpsService.stopLocationUpdates()
+        // 'handler' ya no existe, así que no es necesario limpiar 'sendRunnable'
     }
 }

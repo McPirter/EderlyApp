@@ -1,5 +1,6 @@
 package com.example.elderly.presentation
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -47,6 +48,7 @@ class ForegroundService : Service(), SensorEventListener {
         gpsService.startLocationUpdates() // Iniciamos la escucha del GPS
     }
 
+    @SuppressLint("DiscouragedApi")
     private fun iniciarEnvioPeriodico() {
         timer.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {

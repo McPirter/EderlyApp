@@ -24,28 +24,20 @@ interface ApiService {
 
     @POST("register")
     fun registrarUsuario(@Body usuario: Usuario): Call<Map<String, String>>
-
     @POST("registro-adulto")
     fun registrarAdulto(@Body adulto: Adulto): Call<Map<String, String>>
-
     @POST("login")
     fun loginUsuario(@Body loginRequest: LoginRequest): Call<LoginResponse>
-
     @GET("info-adulto/{id}")
     fun getInfoAdulto(@Path("id") id: String): Call<DashboardData>
-
     @GET("por-usuario/{userId}")
     fun getAdultosPorUsuario(@Path("userId") userId: String): Call<List<AdultoList>>
-
     @POST("registrar-medicamento")
     fun registrarMedicamento(@Body medicamento: RequestBody): Call<MedicamentoResponse>
-
     @GET("info-medicamento-compat/{id}")
     fun getMedicamentosPorAdulto(@Path("id") id: String): Call<List<Medicamento>>
-
     @POST("registrar-temp")
     fun registrarTemp(@Body temperatura: RequestBody): Call<TempResponse>
-
     @GET("info-temp/{id}")
     fun getInfoTemp(@Path("id") id: String): Call<Temperatura>
 
