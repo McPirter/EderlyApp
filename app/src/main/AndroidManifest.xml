@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -21,15 +23,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Ederly"
         tools:targetApi="31">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Ederly">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -39,7 +40,6 @@
         <activity android:name=".UbicacionActivity" />
         <activity android:name=".MapaActivity" />
         <activity android:name=".MonitoreoActivity" />
-
 
         <service
             android:name=".DataLayerListenerService"
@@ -53,9 +53,10 @@
             </intent-filter>
         </service>
 
-
-
-
+        <service
+            android:name=".ApiPollingService"
+            android:enabled="true"
+            android:exported="false" />
 
     </application>
 

@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="elderlywatch">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-11-11T22:19:18.022308500Z">
+        <DropdownSelection timestamp="2025-11-12T19:45:10.670259200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=RFAW41PSS4Y" />
@@ -15,7 +15,7 @@
       </SelectionState>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-11-11T22:19:11.069855900Z">
+        <DropdownSelection timestamp="2025-11-12T19:45:06.544517400Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=RFAW41PSS4Y" />
